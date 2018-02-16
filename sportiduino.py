@@ -46,6 +46,7 @@ class Sportiduino(object):
         errors = ''
         if port is not None:
             self._connect_master_station(port)
+            return
         else:
             # Linux
             scan_ports = [ os.path.join('/dev', f) for f in os.listdir('/dev') if
@@ -138,24 +139,24 @@ class Sportiduino(object):
 
             need_read_next_packet = False
             if length > Sportiduino.OFFSET:
-                # TODO: read next packet for data complete
                 need_read_next_packet = True
                 length = MAX_DATA_LEN
             data = self._serial.read(length)
+            # For fixed size packets
             _ = self._serial.read(MAX_DATA_LEN - length)
             checksum = self._serial.read()
             if self._debug:
                 print("<= code '%s', len %i, data %s, cs %s" % (hex(byte2int(code)),
                                                                 length,
                                                                 ' '.join(hex(byte2int(c)) for c in data),
-                                                                hex(byte2int(checksum)
+                                                                hex(byte2int(checksum))
                                                                 ))
 
-            if not Sportiduino._cs_check(cmd + length_byte + data, checksum)
+            if not Sportiduino._cs_check(cmd + length_byte + data, checksum):
                 raise SportiduinoException('Checksum mismatch')
 
         except (SerialException, OSError) as msg:
-            raise SportiduinoException('Error reading response: %s' %s msg)
+            raise SportiduinoException('Error reading response: %s' % msg)
 
         if need_read_next_packet:
             data += self._read_response(timeout)
