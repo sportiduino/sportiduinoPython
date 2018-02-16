@@ -4,7 +4,7 @@ from six import int2byte, byte2int
 from serial import Serial
 from serial.serialutil import SerialException
 #from binascii import hexlify
-import os
+import os, re
 
 class Sportiduino(object):
 
@@ -43,6 +43,25 @@ class Sportiduino(object):
         self._serial = None
         self._debug = debug
 
+        errors = ''
+        if port is not None:
+            self._connect_master_station(port)
+        else:
+            # Linux
+            scan_ports = [ os.path.join('/dev', f) for f in os.listdir('/dev') if
+                           re.match('ttyUSB.*', f) ]
+
+            if len(scan_ports) == 0:
+                errors = 'no serial ports found'
+
+            for port in scan_ports:
+                try:
+                    self._connect_master_station(port)
+                    return
+                except SportiduinoException as msg:
+                    errors += 'port %s: %s\n' % (port, msg)
+
+        raise SportiduinoException('No Sportiduino master station found. Possible reasons: %s' % errors)
 
     def beep_ok(self):
         self._send_command(Sportiduino.CMD_BEEP_OK)
@@ -110,6 +129,12 @@ class Sportiduino(object):
             sum += byte2int(c)
         sum &= 0xff
         return int2byte(sum)
+
+
+class SportiduinoReadout(Sportiduino):
+
+    def __init__(self, *args, **kwargs):
+        super(type(self), self).__init__(*args, **kwargs)
 
 
 class SportiduinoException(Exception):
