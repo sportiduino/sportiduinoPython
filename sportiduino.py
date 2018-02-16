@@ -117,9 +117,44 @@ class Sportiduino(object):
         return self._read_response()
 
 
-    def _read_response(self):
-        # TODO
-        return
+    def _read_response(self, timeout=None):
+        try:
+            if timeout is not None:
+                old_timeout = self._serial.timeout
+                self._serial.timeout = timeout
+            word = self._serial.read(4)
+            if timeout is not None:
+                self._serial.timeout = old_timeout
+
+            if word == b'':
+                raise SportiduinoException('No data available')
+            elif word != START_SEQ:
+                self._serial.reset_input_buffer()
+                raise SportiduinoException('Invalid start sequence 0x%s' % ' '.join(hex(byte2int(c)) for c in word))
+
+            code = self._serial.read()
+            length_byte = self._serial.read()
+            length = byte2int(length_byte)
+            if length > Sportiduino.OFFSET:
+                # TODO: read next packet for data complete
+                length = MAX_DATA_LEN
+            data = self._serial.read(length)
+            _ = self._serial.read(MAX_DATA_LEN - length)
+            checksum = self._serial.read()
+            if self._debug:
+                print("<= code '%s', len %i, data %s, cs %s" % (hex(byte2int(code)),
+                                                                length,
+                                                                ' '.join(hex(byte2int(c)) for c in data),
+                                                                hex(byte2int(checksum)
+                                                                ))
+
+            if not Sportiduino._cs_check(cmd + length_byte + data, checksum)
+                raise SportiduinoException('Checksum mismatch')
+
+        except (SerialException, OSError) as msg:
+            raise SportiduinoException('Error reading response: %s' %s msg)
+
+        return (code, data)
 
 
     @staticmethod
@@ -129,6 +164,10 @@ class Sportiduino(object):
             sum += byte2int(c)
         sum &= 0xff
         return int2byte(sum)
+
+    @staticmethod
+    def _cs_check(s, checksum):
+        return Sportiduino._checsum(s) == checksum
 
 
 class SportiduinoReadout(Sportiduino):
