@@ -2,7 +2,9 @@
 
 from six import int2byte, byte2int
 from serial import Serial
-from binascii import hexlify
+from serial.serialutil import SerialException
+#from binascii import hexlify
+import os
 
 class Sportiduino(object):
 
@@ -41,11 +43,38 @@ class Sportiduino(object):
         self._serial = None
         self._debug = debug
 
+
     def beep_ok(self):
         self._send_command(Sportiduino.CMD_BEEP_OK)
 
+
     def beep_error(self):
         self._send_command(Sportiduino.CMD_BEEP_ERROR)
+
+
+    def disconnect(self):
+        self._serial.close()
+
+
+    def reconnect(self):
+        self.disconnect()
+        self._connect_master_station(self._serial.port)
+
+
+    def _connect_master_station(self, port):
+        try:
+            self._serial = Serial(port, baudrate=9600, timeout=5)
+        except (SerialException, OSError):
+            raise SportiduinoException("Could not open port '%s'" % port)
+
+        try:
+            self._serial.reset_input_buffer()
+        except (SerialException, OSError):
+            raise SportiduinoException("Could not flush port '%s'" % port)
+
+        self.port = port
+        self.baudrate = self._serial.baudrate
+
 
     def _send_command(self, code, parameters=None):
         if parameters is None:
@@ -68,9 +97,11 @@ class Sportiduino(object):
 
         return self._read_response()
 
+
     def _read_response(self):
         # TODO
         return
+
 
     @staticmethod
     def _checsum(s):
@@ -79,6 +110,7 @@ class Sportiduino(object):
             sum += byte2int(c)
         sum &= 0xff
         return int2byte(sum)
+
 
 class SportiduinoException(Exception):
     pass
