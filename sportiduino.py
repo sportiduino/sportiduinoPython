@@ -135,8 +135,11 @@ class Sportiduino(object):
             code = self._serial.read()
             length_byte = self._serial.read()
             length = byte2int(length_byte)
+
+            need_read_next_packet = False
             if length > Sportiduino.OFFSET:
                 # TODO: read next packet for data complete
+                need_read_next_packet = True
                 length = MAX_DATA_LEN
             data = self._serial.read(length)
             _ = self._serial.read(MAX_DATA_LEN - length)
@@ -153,6 +156,9 @@ class Sportiduino(object):
 
         except (SerialException, OSError) as msg:
             raise SportiduinoException('Error reading response: %s' %s msg)
+
+        if need_read_next_packet:
+            data += self._read_response(timeout)
 
         return (code, data)
 
