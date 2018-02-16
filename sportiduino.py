@@ -19,7 +19,8 @@ class Sportiduino(object):
     CMD_SET_ID          = b'\x42'
     CMD_SET_PASSWD      = b'\x43'
     CMD_INIT_CARD       = b'\x44'
-    CMD_SET_PAGES67     = b'\x45'
+    CMD_SET_PAGES6_7    = b'\x45'
+    CMD_READ_VERS       = b'\x46'
     CMD_WRITE_LOGREADER = b'\x47'
     CMD_READ_LOGREADER  = b'\x48'
     CMD_READ_CARD       = b'\x4b'
@@ -31,6 +32,7 @@ class Sportiduino(object):
     RESP_LOG            = b'\x61'
     RESP_CARD_DATA      = b'\x63'
     RESP_CARD_RAW       = b'\x65'
+    RESP_VERS           = b'\x66'
     RESP_ERROR          = b'\x78'
     RESP_OK             = b'\x79'
 
