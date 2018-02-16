@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from six import int2byte, byte2int
+from six import int2byte, byte2int, iterbytes, PY3
 from serial import Serial
 from serial.serialutil import SerialException
 #from binascii import hexlify
@@ -20,8 +20,8 @@ class Sportiduino(object):
     CMD_SET_PASSWD      = b'\x43'
     CMD_INIT_CARD       = b'\x44'
     CMD_SET_PAGES67     = b'\x45'
-    CMD_SET_LOGREADER   = b'\x47' # ?
-    CMD_GET_LOGREADER   = b'\x48' # ?
+    CMD_WRITE_LOGREADER = b'\x47'
+    CMD_READ_LOGREADER  = b'\x48'
     CMD_READ_CARD       = b'\x4b'
     CMD_READ_RAW        = b'\x4c'
     CMD_WRITE_SLEEPCARD = b'\x4e'
@@ -34,9 +34,9 @@ class Sportiduino(object):
     RESP_ERROR          = b'\x78'
     RESP_OK             = b'\x79'
 
-    ERR_COM             = 0x01
-    ERR_WRITE_CARD      = 0x02
-    ERR_READ_CARD       = 0x03
+    ERR_COM             = b'\x01'
+    ERR_WRITE_CARD      = b'\x02'
+    ERR_READ_CARD       = b'\x03'
 
 
     def __init__(self, port=None, debug=False):
@@ -115,7 +115,7 @@ class Sportiduino(object):
             #                                                 ))
         #self._serial.write(cmd)
 
-        return self._read_response()
+        return Sportiduino._preprocess_response(self._read_response())
 
 
     def _read_response(self, timeout=None):
@@ -128,7 +128,7 @@ class Sportiduino(object):
                 self._serial.timeout = old_timeout
 
             if word == b'':
-                raise SportiduinoException('No data available')
+                raise SportiduinoException('No response')
             elif word != START_SEQ:
                 self._serial.reset_input_buffer()
                 raise SportiduinoException('Invalid start sequence 0x%s' % ' '.join(hex(byte2int(c)) for c in word))
@@ -139,6 +139,7 @@ class Sportiduino(object):
 
             need_read_next_packet = False
             if length > Sportiduino.OFFSET:
+                # TODO check complete set of packets
                 need_read_next_packet = True
                 length = MAX_DATA_LEN
             data = self._serial.read(length)
@@ -161,7 +162,32 @@ class Sportiduino(object):
         if need_read_next_packet:
             data += self._read_response(timeout)
 
-        return (code, data)
+        return code, data
+
+
+    def __del__(self):
+        if self._serial is not None:
+            self._serial.close()
+
+    @staticmethod
+    def _to_int(s)
+        """Compute the integer value of a raw byte string (big endianes)."""
+        value = 0
+        for offset, c in enumerate(iterbytes(s[::-1])):
+            value += c << offset*8
+        return value
+
+
+    @staticmethod
+    def _preprocess_response(code, data):
+        if code == RESP_ERROR:
+            if data == ERR_COM:
+                raise SportiduinoException("COM error")
+            elif data == ERR_WRITE_CARD:
+                raise SportiduinoException("Card write error")
+            elif data == ERR_READ_CARD:
+                raise SportiduinoException("Card read error")
+        return code, data
 
 
     @staticmethod
@@ -172,15 +198,57 @@ class Sportiduino(object):
         sum &= 0xff
         return int2byte(sum)
 
+
     @staticmethod
     def _cs_check(s, checksum):
         return Sportiduino._checsum(s) == checksum
+
 
 
 class SportiduinoReadout(Sportiduino):
 
     def __init__(self, *args, **kwargs):
         super(type(self), self).__init__(*args, **kwargs)
+
+
+    def read_card(self):
+        code, data = self._send_command(Sportiduino.CMD_READ_CARD)
+        if code == RESP_CARD_DATA:
+            self._parse_card_data(data)
+
+
+    def read_card_raw(self):
+        code, data = self._send_command(Sportiduino.CMD_READ_RAW)
+        if code == RESP_CARD_RAW:
+            self._parse_card_raw_data(data)
+
+
+    def read_log(self):
+        code, data = self._send_command(Sportiduino.CMD_READ_LOGREADER)
+        if code == RESP_LOG:
+            self._parse_log(data)
+
+
+    def _parse_card_data(self, data):
+        # TODO check data length
+        ret = {}
+        ret['card_number'] = Sportiduino._to_int(data[0:1])
+        ret['page6'] = data[2:5]
+        ret['page7'] = data[6:9]
+        # TODO read punches
+
+        return ret
+
+
+    def _parse_card_raw_data(self, data):
+        # TODO
+        pass
+
+
+    def _parse_log(data):
+        # TODO
+        pass
+
 
 
 class SportiduinoException(Exception):

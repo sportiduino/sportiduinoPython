@@ -3,7 +3,7 @@
 from sportiduino import Sportiduino
 
 
-sportiduino = Sportiduino('/dev/ttyUSB0', True)
+sportiduino = Sportiduino(debug=True)
 
 print('beep_ok')
 sportiduino.beep_ok()
