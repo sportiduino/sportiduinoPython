@@ -27,7 +27,7 @@ import os, re
 class Sportiduino(object):
 
     # Constants
-    START_SEQ = b'\xfe\xfe\xfe\xfe'
+    START_BYTE = b'\xfe'
 
     OFFSET = 0x1E
 
@@ -125,7 +125,7 @@ class Sportiduino(object):
         cmd_string = code + int2byte(data_len) + parameters
 
         cs = self._checsum(cmd_string)
-        cmd = Sportiduino.START_SEQ + cmd_string + cs
+        cmd = Sportiduino.START_BYTE + cmd_string + cs
 
         if self._debug:
             print("=> %s" % ' '.join(hex(byte2int(c)) for c in cmd))
@@ -143,15 +143,15 @@ class Sportiduino(object):
             if timeout is not None:
                 old_timeout = self._serial.timeout
                 self._serial.timeout = timeout
-            word = self._serial.read(4)
+            byte = self._serial.read()
             if timeout is not None:
                 self._serial.timeout = old_timeout
 
-            if word == b'':
+            if byte == b'':
                 raise SportiduinoException('No response')
-            elif word != START_SEQ:
+            elif byte != START_BYTE:
                 self._serial.reset_input_buffer()
-                raise SportiduinoException('Invalid start sequence 0x%s' % ' '.join(hex(byte2int(c)) for c in word))
+                raise SportiduinoException('Invalid start byte 0x%s' % hex(byte2int(byte)))
 
             code = self._serial.read()
             length_byte = self._serial.read()
@@ -163,8 +163,6 @@ class Sportiduino(object):
                 need_read_next_packet = True
                 length = MAX_DATA_LEN
             data = self._serial.read(length)
-            # For fixed size packets
-            _ = self._serial.read(MAX_DATA_LEN - length)
             checksum = self._serial.read()
             if self._debug:
                 print("<= code '%s', len %i, data %s, cs %s" % (hex(byte2int(code)),
