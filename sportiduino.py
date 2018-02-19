@@ -62,6 +62,14 @@ class Sportiduino(object):
     ERR_WRITE_CARD      = b'\x02'
     ERR_READ_CARD       = b'\x03'
 
+    class Version(object):
+        def __init__(self, value):
+            self.value = value
+            self.major = value // 100
+            self.minor = value % 100
+
+        def __str__(self):
+            return 'v%d.%d.x' % (self.major, self.minor)
 
     def __init__(self, port=None, debug=False):
         self._serial = None
@@ -105,6 +113,13 @@ class Sportiduino(object):
         self._connect_master_station(self._serial.port)
 
 
+    def read_version(self):
+        code, data = self._send_command(Sportiduino.CMD_READ_VERS)
+        if code == RESP_VERS:
+            return Version(byte2int(data))
+        return None
+
+
     def _connect_master_station(self, port):
         try:
             self._serial = Serial(port, baudrate=9600, timeout=5)
@@ -118,6 +133,10 @@ class Sportiduino(object):
 
         self.port = port
         self.baudrate = self._serial.baudrate
+        version = self.read_version()
+        if version is not None:
+            print("Master station %s on port '%s' connected" % (version, port))
+
 
 
     def _send_command(self, code, parameters=None):
