@@ -21,6 +21,7 @@ sportiduino.py - Classes to work with Sportiduino v1.2.0 and above.
 from six import int2byte, byte2int, iterbytes, PY3
 from serial import Serial
 from serial.serialutil import SerialException
+from datetime import datetime
 #from binascii import hexlify
 import os, re
 
@@ -32,6 +33,9 @@ class Sportiduino(object):
     OFFSET = 0x1E
 
     MAX_DATA_LEN = 25
+
+    START_STATION = 240
+    FINISH_STATION = 245
 
     CMD_SET_TIME        = b'\x41'
     CMD_SET_ID          = b'\x42'
@@ -188,7 +192,7 @@ class Sportiduino(object):
             self._serial.close()
 
     @staticmethod
-    def _to_int(s)
+    def _to_int(s):
         """Compute the integer value of a raw byte string (big endianes)."""
         value = 0
         for offset, c in enumerate(iterbytes(s[::-1])):
@@ -247,13 +251,23 @@ class SportiduinoReadout(Sportiduino):
             self._parse_log(data)
 
 
-    def _parse_card_data(self, data):
+    @staticmethod
+    def _parse_card_data(data):
         # TODO check data length
         ret = {}
         ret['card_number'] = Sportiduino._to_int(data[0:1])
         ret['page6'] = data[2:5]
         ret['page7'] = data[6:9]
-        # TODO read punches
+        ret['punches'] = []
+        for i in range(10, len(data), 5):
+            cp = byte2int(data[i])
+            time = datetime.fromtimestamp(Sportiduino._to_int(data[i + 1:i + 4]))
+            if cp == START_STATION:
+                ret['start'] = time
+            elif cp == FINISH_STATION:
+                ret['finish'] = time
+            else:
+                ret['punches'].append((cp, time))
 
         return ret
 
