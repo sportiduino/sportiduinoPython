@@ -161,7 +161,7 @@ class Sportiduino(object):
         return Sportiduino._preprocess_response(self._read_response())
 
 
-    def _read_response(self, timeout=None):
+    def _read_response(self, timeout=None, wait_fragment=None):
         try:
             if timeout is not None:
                 old_timeout = self._serial.timeout
@@ -180,10 +180,13 @@ class Sportiduino(object):
             length_byte = self._serial.read()
             length = byte2int(length_byte)
 
-            need_read_next_packet = False
+            more_fragments = False
             if length > Sportiduino.OFFSET:
-                # TODO check complete set of packets
-                need_read_next_packet = True
+                more_fragments = True
+                fragment_num = length - Sportiduino.OFFSET
+                if fragment_num != 1 and wait_fragment is not None:
+                    if fragment_num != wait_fragment:
+                        raise SportiduinoException('Waiting fragment %d, receive %d' % (wait_fragment, fragment_num))
                 length = MAX_DATA_LEN
             data = self._serial.read(length)
             checksum = self._serial.read()
@@ -200,8 +203,8 @@ class Sportiduino(object):
         except (SerialException, OSError) as msg:
             raise SportiduinoException('Error reading response: %s' % msg)
 
-        if need_read_next_packet:
-            data += self._read_response(timeout)
+        if more_fragments:
+            data += self._read_response(timeout, fragment_num + 1)
 
         return code, data
 
