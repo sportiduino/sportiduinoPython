@@ -122,8 +122,8 @@ class Sportiduino(object):
 
     def read_version(self):
         code, data = self._send_command(Sportiduino.CMD_READ_VERS)
-        if code == RESP_VERS:
-            return Version(byte2int(data))
+        if code == Sportiduino.RESP_VERS:
+            return Sportiduino.Version(byte2int(data))
         return None
 
 
@@ -165,7 +165,8 @@ class Sportiduino(object):
             #                                                 ))
         self._serial.write(cmd)
 
-        return Sportiduino._preprocess_response(self._read_response())
+        code, data = self._read_response()
+        return Sportiduino._preprocess_response(code, data)
 
 
     def _read_response(self, timeout=None, wait_fragment=None):
@@ -204,7 +205,7 @@ class Sportiduino(object):
                                                                 hex(byte2int(checksum))
                                                                 ))
 
-            if not Sportiduino._cs_check(cmd + length_byte + data, checksum):
+            if not Sportiduino._cs_check(code + length_byte + data, checksum):
                 raise SportiduinoException('Checksum mismatch')
 
         except (SerialException, OSError) as msg:
@@ -231,12 +232,12 @@ class Sportiduino(object):
 
     @staticmethod
     def _preprocess_response(code, data):
-        if code == RESP_ERROR:
-            if data == ERR_COM:
+        if code == Sportiduino.RESP_ERROR:
+            if data == Sportiduino.ERR_COM:
                 raise SportiduinoException("COM error")
-            elif data == ERR_WRITE_CARD:
+            elif data == Sportiduino.ERR_WRITE_CARD:
                 raise SportiduinoException("Card write error")
-            elif data == ERR_READ_CARD:
+            elif data == Sportiduino.ERR_READ_CARD:
                 raise SportiduinoException("Card read error")
         return code, data
 
@@ -264,19 +265,19 @@ class SportiduinoReadout(Sportiduino):
 
     def read_card(self):
         code, data = self._send_command(Sportiduino.CMD_READ_CARD)
-        if code == RESP_CARD_DATA:
+        if code == Sportiduino.RESP_CARD_DATA:
             self._parse_card_data(data)
 
 
     def read_card_raw(self):
         code, data = self._send_command(Sportiduino.CMD_READ_RAW)
-        if code == RESP_CARD_RAW:
+        if code == Sportiduino.RESP_CARD_RAW:
             self._parse_card_raw_data(data)
 
 
     def read_log(self):
         code, data = self._send_command(Sportiduino.CMD_READ_LOGREADER)
-        if code == RESP_LOG:
+        if code == Sportiduino.RESP_LOG:
             self._parse_log(data)
 
 
