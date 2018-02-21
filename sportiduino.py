@@ -25,6 +25,13 @@ from datetime import datetime
 #from binascii import hexlify
 import os, re
 
+if PY3:
+    def byte2int(x):
+        try:
+            return x[0]
+        except TypeError:
+            return x
+
 class Sportiduino(object):
 
     # Constants
@@ -156,7 +163,7 @@ class Sportiduino(object):
             #                                                 ' '.join([hexlify(int2byte(c)).decode('ascii') for c in parameters]),
             #                                                 hexlify(cs).decode('ascii'),
             #                                                 ))
-        #self._serial.write(cmd)
+        self._serial.write(cmd)
 
         return Sportiduino._preprocess_response(self._read_response())
 
@@ -172,7 +179,7 @@ class Sportiduino(object):
 
             if byte == b'':
                 raise SportiduinoException('No response')
-            elif byte != START_BYTE:
+            elif byte != Sportiduino.START_BYTE:
                 self._serial.reset_input_buffer()
                 raise SportiduinoException('Invalid start byte 0x%s' % hex(byte2int(byte)))
 
