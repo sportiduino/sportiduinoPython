@@ -9,7 +9,7 @@ import serial
 
 #ser = serial.Serial('/dev/pts/12')
 #ser.write(b'\xfe')
-sportiduino = Sportiduino(port='/dev/pts/12', debug=True)
+sportiduino = Sportiduino(port='/dev/pts/14', debug=True)
 #sportiduino = Sportiduino(debug=True)
 
 print('beep_ok')

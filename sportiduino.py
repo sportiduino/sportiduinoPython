@@ -52,6 +52,7 @@ class Sportiduino(object):
     CMD_READ_VERS       = b'\x46'
     CMD_WRITE_LOGREADER = b'\x47'
     CMD_READ_LOGREADER  = b'\x48'
+    CMD_SET_READ_MODE   = b'\x49'
     CMD_READ_CARD       = b'\x4b'
     CMD_READ_RAW        = b'\x4c'
     CMD_WRITE_SLEEPCARD = b'\x4e'
@@ -62,6 +63,7 @@ class Sportiduino(object):
     RESP_CARD_DATA      = b'\x63'
     RESP_CARD_RAW       = b'\x65'
     RESP_VERS           = b'\x66'
+    RESP_MODE           = b'\x69'
     RESP_ERROR          = b'\x78'
     RESP_OK             = b'\x79'
 
@@ -302,14 +304,25 @@ class SportiduinoReadout(Sportiduino):
         return ret
 
 
-    def _parse_card_raw_data(self, data):
-        # TODO
-        pass
+    @staticmethod
+    def _parse_card_raw_data(data):
+        ret = {}
+        for i in range(0, len(data), 5):
+            page_num = byte2int(data[i])
+            ret[page_num] = data[i + 1:i + 4]
 
+        return ret
 
+    @staticmethod
     def _parse_log(data):
-        # TODO
-        pass
+        ret = {}
+        cp = byte2int(data[0])
+        ret['cp'] = cp
+        ret['cards'] = []
+        for i in range(1, len(data), 2):
+            ret['cards'].append(Sportiduino._to_int(data[i:i + 1]))
+
+        return ret
 
 
 
