@@ -22,6 +22,7 @@ from six import int2byte, byte2int, iterbytes, PY3
 from serial import Serial
 from serial.serialutil import SerialException
 from datetime import datetime
+import time
 #from binascii import hexlify
 import os, re
 
@@ -45,7 +46,7 @@ class Sportiduino(object):
     FINISH_STATION = 245
 
     CMD_SET_TIME        = b'\x41'
-    CMD_SET_ID          = b'\x42'
+    CMD_SET_CP_NUM      = b'\x42'
     CMD_SET_PASSWD      = b'\x43'
     CMD_INIT_CARD       = b'\x44'
     CMD_SET_PAGES6_7    = b'\x45'
@@ -129,6 +130,56 @@ class Sportiduino(object):
         return None
 
 
+    def read_card(self):
+        code, data = self._send_command(Sportiduino.CMD_READ_CARD)
+        if code == Sportiduino.RESP_CARD_DATA:
+            self._parse_card_data(data)
+
+
+    def read_card_raw(self):
+        code, data = self._send_command(Sportiduino.CMD_READ_RAW)
+        if code == Sportiduino.RESP_CARD_RAW:
+            self._parse_card_raw_data(data)
+
+
+    def read_log(self):
+        code, data = self._send_command(Sportiduino.CMD_READ_LOGREADER)
+        if code == Sportiduino.RESP_LOG:
+            self._parse_log(data)
+
+
+    def set_time(self, time=datetime.today()):
+        params = bytearray()
+        params.append(time.year - 2000)
+        params.append(time.month)
+        params.append(time.day)
+        params.append(time.hour)
+        params.append(time.minute)
+        params.append(time.second)
+        self._send_command(Sportiduino.CMD_SET_TIME, params)
+
+
+    def set_cp_number(self, cp_number):
+        params = int2byte(cp_number)
+        self._send_command(Sportiduino.CMD_SET_CP_NUM, params)
+
+
+    def init_card(self, card_number, page6=None, page7=None):
+        if page6 is None:
+            page6 = b'\x00\x00\x00\x00'
+        if page7 is None:
+            page7 = b'\x00\x00\x00\x00'
+
+        params = bytearray()
+        print(card_number)
+        params.append(Sportiduino._to_str(card_number, 2))
+        t = int(time.time())
+        params.append(Sportiduino._to_str(t, 4))
+        params.append(page6[0:5])
+        params.append(page7[0:5])
+        self._send_command(Sportiduino.CMD_INIT_CARD, params)
+
+
     def _connect_master_station(self, port):
         try:
             self._serial = Serial(port, baudrate=9600, timeout=5)
@@ -145,7 +196,6 @@ class Sportiduino(object):
         version = self.read_version()
         if version is not None:
             print("Master station %s on port '%s' connected" % (version, port))
-
 
 
     def _send_command(self, code, parameters=None):
@@ -178,8 +228,7 @@ class Sportiduino(object):
                 self._serial.timeout = timeout
             byte = self._serial.read()
             if timeout is not None:
-                self._serial.timeout = old_timeout
-
+                self._serial.timeout = old_timeout 
             if byte == b'':
                 raise SportiduinoException('No response')
             elif byte != Sportiduino.START_BYTE:
@@ -223,6 +272,7 @@ class Sportiduino(object):
         if self._serial is not None:
             self._serial.close()
 
+
     @staticmethod
     def _to_int(s):
         """Compute the integer value of a raw byte string (big endianes)."""
@@ -230,6 +280,18 @@ class Sportiduino(object):
         for offset, c in enumerate(iterbytes(s[::-1])):
             value += c << offset*8
         return value
+
+
+    @staticmethod
+    def _to_str(i, len):
+        if PY3:
+            return i.to_bytes(len, 'big')
+        if i >> len*8 != 0:
+            raise OverflowError('%i too big to convert to %i bytes' % (i, len))
+        string = ''
+        for offset in range(len-1, -1, -1):
+            string += int2byte((i >> offset*8) & 0xff)
+        return string
 
 
     @staticmethod
@@ -257,32 +319,7 @@ class Sportiduino(object):
     def _cs_check(s, checksum):
         return Sportiduino._checsum(s) == checksum
 
-
-
-class SportiduinoReadout(Sportiduino):
-
-    def __init__(self, *args, **kwargs):
-        super(type(self), self).__init__(*args, **kwargs)
-
-
-    def read_card(self):
-        code, data = self._send_command(Sportiduino.CMD_READ_CARD)
-        if code == Sportiduino.RESP_CARD_DATA:
-            self._parse_card_data(data)
-
-
-    def read_card_raw(self):
-        code, data = self._send_command(Sportiduino.CMD_READ_RAW)
-        if code == Sportiduino.RESP_CARD_RAW:
-            self._parse_card_raw_data(data)
-
-
-    def read_log(self):
-        code, data = self._send_command(Sportiduino.CMD_READ_LOGREADER)
-        if code == Sportiduino.RESP_LOG:
-            self._parse_log(data)
-
-
+ 
     @staticmethod
     def _parse_card_data(data):
         # TODO check data length
@@ -312,6 +349,7 @@ class SportiduinoReadout(Sportiduino):
             ret[page_num] = data[i + 1:i + 4]
 
         return ret
+
 
     @staticmethod
     def _parse_log(data):

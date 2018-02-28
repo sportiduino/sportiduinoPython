@@ -14,6 +14,11 @@ sportiduino = Sportiduino(port='/dev/pts/14', debug=True)
 
 print('beep_ok')
 sportiduino.beep_ok()
+
 print('beep_error')
 sportiduino.beep_error()
+
+sportiduino.set_time()
+
+sportiduino.init_card(2)
 
