@@ -165,18 +165,18 @@ class Sportiduino(object):
 
 
     def init_card(self, card_number, page6=None, page7=None):
+        #TODO: check page6 and page7 length
         if page6 is None:
             page6 = b'\x00\x00\x00\x00'
         if page7 is None:
             page7 = b'\x00\x00\x00\x00'
 
         params = bytearray()
-        print(card_number)
-        params.append(Sportiduino._to_str(card_number, 2))
+        params += Sportiduino._to_str(card_number, 2)
         t = int(time.time())
-        params.append(Sportiduino._to_str(t, 4))
-        params.append(page6[0:5])
-        params.append(page7[0:5])
+        params += Sportiduino._to_str(t, 4)
+        params += page6[0:5]
+        params += page7[0:5]
         self._send_command(Sportiduino.CMD_INIT_CARD, params)
 
 
@@ -218,7 +218,7 @@ class Sportiduino(object):
         self._serial.write(cmd)
 
         code, data = self._read_response()
-        return Sportiduino._preprocess_response(code, data)
+        return Sportiduino._preprocess_response(code, data, self._debug)
 
 
     def _read_response(self, timeout=None, wait_fragment=None):
@@ -295,7 +295,7 @@ class Sportiduino(object):
 
 
     @staticmethod
-    def _preprocess_response(code, data):
+    def _preprocess_response(code, data, debug=False):
         if code == Sportiduino.RESP_ERROR:
             if data == Sportiduino.ERR_COM:
                 raise SportiduinoException("COM error")
@@ -303,6 +303,8 @@ class Sportiduino(object):
                 raise SportiduinoException("Card write error")
             elif data == Sportiduino.ERR_READ_CARD:
                 raise SportiduinoException("Card read error")
+        elif code == Sportiduino.RESP_OK and debug:
+            print("Ok received")
         return code, data
 
 
