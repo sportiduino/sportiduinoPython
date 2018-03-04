@@ -175,9 +175,32 @@ class Sportiduino(object):
         params += Sportiduino._to_str(card_number, 2)
         t = int(time.time())
         params += Sportiduino._to_str(t, 4)
-        params += page6[0:5]
-        params += page7[0:5]
+        params += page6[:5]
+        params += page7[:5]
         self._send_command(Sportiduino.CMD_INIT_CARD, params)
+
+
+    def write_passwd(self, old_passwd, new_passwd, settings):
+        params = bytearray()
+        params += Sportiduino._to_str(new_passwd, 3)
+        params += Sportiduino._to_str(old_passwd, 3)
+        params += Sportiduino._to_str(settings, 1)
+        self._send_command(Sportiduino.CMD_SET_PASSWD, params)
+
+
+    def write_pages6_7(self, page6, page7):
+        params = bytearray()
+        params += page6[:5]
+        params += page7[:5]
+        self._send_command(Sportiduino.CMD_SET_PAGES6_7, params)
+
+
+    def write_logreader(self):
+        self._send_command(Sportiduino.CMD_WRITE_LOGREADER)
+
+
+    def write_sleepcard(self):
+        self._send_command(Sportiduino.CMD_WRITE_SLEEPCARD)
 
 
     def _connect_master_station(self, port):
