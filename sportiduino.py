@@ -133,19 +133,25 @@ class Sportiduino(object):
     def read_card(self):
         code, data = self._send_command(Sportiduino.CMD_READ_CARD)
         if code == Sportiduino.RESP_CARD_DATA:
-            self._parse_card_data(data)
+            return self._parse_card_data(data)
+        else:
+            raise SportiduinoException("Read card failed.")
 
 
     def read_card_raw(self):
         code, data = self._send_command(Sportiduino.CMD_READ_RAW)
         if code == Sportiduino.RESP_CARD_RAW:
-            self._parse_card_raw_data(data)
+            return self._parse_card_raw_data(data)
+        else:
+            raise SportiduinoException("Read raw data failed.")
 
 
     def read_log(self):
         code, data = self._send_command(Sportiduino.CMD_READ_LOGREADER)
         if code == Sportiduino.RESP_LOG:
-            self._parse_log(data)
+            return self._parse_log(data)
+        else:
+            raise SportiduinoException("Read log failed.")
 
 
     def init_card(self, card_number, page6=None, page7=None):
@@ -281,7 +287,7 @@ class Sportiduino(object):
                 if fragment_num != 1 and wait_fragment is not None:
                     if fragment_num != wait_fragment:
                         raise SportiduinoException('Waiting fragment %d, receive %d' % (wait_fragment, fragment_num))
-                length = MAX_DATA_LEN
+                length = Sportiduino.MAX_DATA_LEN
             data = self._serial.read(length)
             checksum = self._serial.read()
             if self._debug:
@@ -298,7 +304,9 @@ class Sportiduino(object):
             raise SportiduinoException('Error reading response: %s' % msg)
 
         if more_fragments:
-            data += self._read_response(timeout, fragment_num + 1)
+            next_code, next_data = self._read_response(timeout, fragment_num + 1)
+            if next_code == code:
+                data += next_data
 
         return code, data
 
@@ -361,16 +369,16 @@ class Sportiduino(object):
     def _parse_card_data(data):
         # TODO check data length
         ret = {}
-        ret['card_number'] = Sportiduino._to_int(data[0:1])
-        ret['page6'] = data[2:5]
-        ret['page7'] = data[6:9]
+        ret['card_number'] = Sportiduino._to_int(data[0:2])
+        ret['page6'] = data[2:6]
+        ret['page7'] = data[6:10]
         ret['punches'] = []
         for i in range(10, len(data), 5):
             cp = byte2int(data[i])
-            time = datetime.fromtimestamp(Sportiduino._to_int(data[i + 1:i + 4]))
-            if cp == START_STATION:
+            time = datetime.fromtimestamp(Sportiduino._to_int(data[i + 1:i + 5]))
+            if cp == Sportiduino.START_STATION:
                 ret['start'] = time
-            elif cp == FINISH_STATION:
+            elif cp == Sportiduino.FINISH_STATION:
                 ret['finish'] = time
             else:
                 ret['punches'].append((cp, time))

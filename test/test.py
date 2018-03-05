@@ -19,12 +19,11 @@ sportiduino.beep_ok()
 print('beep_error')
 sportiduino.beep_error()
 
-print('set_time')
-sportiduino.set_time()
-
-print('set_cp_number')
-sportiduino.set_cp_number(31)
-
 print('init_card')
-sportiduino.init_card(2)
+sportiduino.init_card(card_number=2)
+
+print('read_card')
+data = sportiduino.read_card()
+print(data)
+
 
