@@ -24,7 +24,9 @@ from serial.serialutil import SerialException
 from datetime import datetime
 import time
 #from binascii import hexlify
-import os, re
+import os
+import platform
+import re
 
 if PY3:
     def byte2int(x):
@@ -90,19 +92,26 @@ class Sportiduino(object):
             self._connect_master_station(port)
             return
         else:
-            # Linux
-            scan_ports = [ os.path.join('/dev', f) for f in os.listdir('/dev') if
-                           re.match('ttyUSB.*', f) ]
+            if platform.system() == 'Linux':
+                scan_ports = [ os.path.join('/dev', f) for f in os.listdir('/dev') if
+                               re.match('ttyUSB.*', f) ]
 
-            if len(scan_ports) == 0:
-                errors = 'no serial ports found'
+                if len(scan_ports) == 0:
+                    errors = 'no serial ports found'
 
-            for port in scan_ports:
-                try:
-                    self._connect_master_station(port)
-                    return
-                except SportiduinoException as msg:
-                    errors += 'port %s: %s\n' % (port, msg)
+                for port in scan_ports:
+                    try:
+                        self._connect_master_station(port)
+                        return
+                    except SportiduinoException as msg:
+                        errors += 'port %s: %s\n' % (port, msg)
+            elif platform.system() == 'Windows':
+                for i in range(32):
+                    try:
+                        port = 'COM' + str(i)
+                        self._connect_master_station(port)
+                    except SportiduinoException as msg:
+                        errors += 'port %s: %s\n' % (port, msg)
 
         raise SportiduinoException('No Sportiduino master station found. Possible reasons: %s' % errors)
 
