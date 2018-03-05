@@ -147,16 +147,16 @@ class Sportiduino(object):
             raise SportiduinoException("Read card failed.")
 
 
-    def read_card_raw(self):
-        code, data = self._send_command(Sportiduino.CMD_READ_RAW)
+    def read_card_raw(self, blocking=True):
+        code, data = self._send_command(Sportiduino.CMD_READ_RAW, blocking=blocking)
         if code == Sportiduino.RESP_CARD_RAW:
             return self._parse_card_raw_data(data)
         else:
             raise SportiduinoException("Read raw data failed.")
 
 
-    def read_log(self):
-        code, data = self._send_command(Sportiduino.CMD_READ_LOGREADER)
+    def read_log(self, blocking=True):
+        code, data = self._send_command(Sportiduino.CMD_READ_LOGREADER, blocking=blocking)
         if code == Sportiduino.RESP_LOG:
             return self._parse_log(data)
         else:
