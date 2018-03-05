@@ -20,9 +20,6 @@ sportiduino.beep_ok()
 print('beep_error')
 sportiduino.beep_error()
 
-print('init_card')
-sportiduino.init_card(card_number=2)
-
 print('Read card loop')
 while True:
     # Read card or wait
