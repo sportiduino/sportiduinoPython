@@ -139,8 +139,8 @@ class Sportiduino(object):
         return None
 
 
-    def read_card(self):
-        code, data = self._send_command(Sportiduino.CMD_READ_CARD)
+    def read_card(self, blocking=True):
+        code, data = self._send_command(Sportiduino.CMD_READ_CARD, blocking=blocking)
         if code == Sportiduino.RESP_CARD_DATA:
             return self._parse_card_data(data)
         else:
@@ -248,7 +248,7 @@ class Sportiduino(object):
             print("Master station %s on port '%s' connected" % (version, port))
 
 
-    def _send_command(self, code, parameters=None):
+    def _send_command(self, code, parameters=None, blocking=False):
         if parameters is None:
             parameters = b''
         data_len = len(parameters)
@@ -267,8 +267,15 @@ class Sportiduino(object):
             #                                                 ))
         self._serial.write(cmd)
 
-        code, data = self._read_response()
-        return Sportiduino._preprocess_response(code, data, self._debug)
+        while True:
+            try:
+                resp_code, data = self._read_response()
+                break
+            except SportiduinoTimeout as msg:
+                if not blocking:
+                    raise SportiduinoTimeout(msg)
+
+        return Sportiduino._preprocess_response(resp_code, data, self._debug)
 
 
     def _read_response(self, timeout=None, wait_fragment=None):
@@ -280,7 +287,7 @@ class Sportiduino(object):
             if timeout is not None:
                 self._serial.timeout = old_timeout 
             if byte == b'':
-                raise SportiduinoException('No response')
+                raise SportiduinoTimeout('No response')
             elif byte != Sportiduino.START_BYTE:
                 self._serial.reset_input_buffer()
                 raise SportiduinoException('Invalid start byte 0x%s' % hex(byte2int(byte)))
@@ -419,5 +426,9 @@ class Sportiduino(object):
 
 
 class SportiduinoException(Exception):
+    pass
+
+
+class SportiduinoTimeout(SportiduinoException):
     pass
 

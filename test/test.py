@@ -4,6 +4,7 @@ import sys
 sys.path.append('..')
 
 from sportiduino import Sportiduino
+from time import sleep
 import serial
 
 if len(sys.argv) > 1:
@@ -22,8 +23,11 @@ sportiduino.beep_error()
 print('init_card')
 sportiduino.init_card(card_number=2)
 
-print('read_card')
-data = sportiduino.read_card()
-print(data)
+print('Read card loop')
+while True:
+    # Read card or wait
+    data = sportiduino.read_card()
+    sportiduino.beep_ok()
+    print("Punches:", data)
 
 

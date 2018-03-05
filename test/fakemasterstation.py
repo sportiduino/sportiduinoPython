@@ -3,6 +3,7 @@
 import os, pty
 
 from six import int2byte, byte2int, iterbytes, PY3
+from time import sleep
 
 if PY3:
     def byte2int(x):
@@ -39,6 +40,7 @@ class FakeMasterStation(object):
         elif cmd[:3] == b'\xfe\x44\x0e':
             os.write(self.master, b'\xfe\x79\x00\x79') # send Ok
         elif cmd == b'\xfe\x4b\x00\x4b':
+            sleep(10)
             os.write(self.master, b'\xfe\x63\x1f'
                                 + b'\x00\x09'
                                 + b'\x00\x00\x00\x00\x00\x00\x00\x00'
