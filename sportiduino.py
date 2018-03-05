@@ -45,18 +45,18 @@ class Sportiduino(object):
     START_STATION = 240
     FINISH_STATION = 245
 
-    CMD_SET_TIME        = b'\x41'
-    CMD_SET_CP_NUM      = b'\x42'
-    CMD_SET_PASSWD      = b'\x43'
+    CMD_WRITE_TIME      = b'\x41'
+    CMD_WRITE_CP_NUM    = b'\x42'
+    CMD_WRITE_PASSWD    = b'\x43'
     CMD_INIT_CARD       = b'\x44'
-    CMD_SET_PAGES6_7    = b'\x45'
+    CMD_WRITE_PAGES6_7  = b'\x45'
     CMD_READ_VERS       = b'\x46'
-    CMD_WRITE_LOGREADER = b'\x47'
+    CMD_INIT_LOGREADER  = b'\x47'
     CMD_READ_LOGREADER  = b'\x48'
     CMD_SET_READ_MODE   = b'\x49'
     CMD_READ_CARD       = b'\x4b'
     CMD_READ_RAW        = b'\x4c'
-    CMD_WRITE_SLEEPCARD = b'\x4e'
+    CMD_INIT_SLEEPCARD  = b'\x4e'
     CMD_BEEP_ERROR      = b'\x58'
     CMD_BEEP_OK         = b'\x59'
 
@@ -148,22 +148,6 @@ class Sportiduino(object):
             self._parse_log(data)
 
 
-    def set_time(self, time=datetime.today()):
-        params = bytearray()
-        params.append(time.year - 2000)
-        params.append(time.month)
-        params.append(time.day)
-        params.append(time.hour)
-        params.append(time.minute)
-        params.append(time.second)
-        self._send_command(Sportiduino.CMD_SET_TIME, params)
-
-
-    def set_cp_number(self, cp_number):
-        params = int2byte(cp_number)
-        self._send_command(Sportiduino.CMD_SET_CP_NUM, params)
-
-
     def init_card(self, card_number, page6=None, page7=None):
         #TODO: check page6 and page7 length
         if page6 is None:
@@ -180,27 +164,55 @@ class Sportiduino(object):
         self._send_command(Sportiduino.CMD_INIT_CARD, params)
 
 
+    def init_logreader(self):
+        self._send_command(Sportiduino.CMD_INIT_LOGREADER)
+
+
+    def init_sleepcard(self):
+        self._send_command(Sportiduino.CMD_INIT_SLEEPCARD)
+
+
+    def write_cp_number(self, cp_number):
+        params = int2byte(cp_number)
+        self._send_command(Sportiduino.CMD_WRITE_CP_NUM, params)
+
+
+    def write_time(self, time=datetime.today()):
+        params = bytearray()
+        params.append(time.year - 2000)
+        params.append(time.month)
+        params.append(time.day)
+        params.append(time.hour)
+        params.append(time.minute)
+        params.append(time.second)
+        self._send_command(Sportiduino.CMD_WRITE_TIME, params)
+
+
     def write_passwd(self, old_passwd, new_passwd, settings):
         params = bytearray()
         params += Sportiduino._to_str(new_passwd, 3)
         params += Sportiduino._to_str(old_passwd, 3)
         params += Sportiduino._to_str(settings, 1)
-        self._send_command(Sportiduino.CMD_SET_PASSWD, params)
+        self._send_command(Sportiduino.CMD_WRITE_PASSWD, params)
 
 
     def write_pages6_7(self, page6, page7):
         params = bytearray()
         params += page6[:5]
         params += page7[:5]
-        self._send_command(Sportiduino.CMD_SET_PAGES6_7, params)
+        self._send_command(Sportiduino.CMD_WRITE_PAGES6_7, params)
 
 
-    def write_logreader(self):
-        self._send_command(Sportiduino.CMD_WRITE_LOGREADER)
+    def enable_continuous_read(self):
+        self._set_mode(b'\x01')
 
 
-    def write_sleepcard(self):
-        self._send_command(Sportiduino.CMD_WRITE_SLEEPCARD)
+    def disable_continuous_read(self):
+        self._set_mode(b'\x00')
+
+
+    def _set_mode(self, mode):
+        self._send_command(Sportiduino.CMD_SET_READ_MODE, mode)
 
 
     def _connect_master_station(self, port):
