@@ -42,7 +42,7 @@ class Sportiduino(object):
 
     OFFSET = 0x1E
 
-    MAX_DATA_LEN = 25
+    MAX_DATA_LEN = 28
 
     START_STATION = 240
     FINISH_STATION = 245
@@ -297,10 +297,10 @@ class Sportiduino(object):
             length = byte2int(length_byte)
 
             more_fragments = False
-            if length > Sportiduino.OFFSET:
+            if length >= Sportiduino.OFFSET:
                 more_fragments = True
                 fragment_num = length - Sportiduino.OFFSET
-                if fragment_num != 1 and wait_fragment is not None:
+                if fragment_num > 0 and (wait_fragment is not None):
                     if fragment_num != wait_fragment:
                         raise SportiduinoException('Waiting fragment %d, receive %d' % (wait_fragment, fragment_num))
                 length = Sportiduino.MAX_DATA_LEN
