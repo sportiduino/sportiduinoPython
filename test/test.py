@@ -26,5 +26,6 @@ while True:
     data = sportiduino.read_card()
     sportiduino.beep_ok()
     print("Punches:", data)
+    sleep(2)
 
 

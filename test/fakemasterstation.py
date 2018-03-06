@@ -40,8 +40,7 @@ class FakeMasterStation(object):
         elif cmd[:3] == b'\xfe\x44\x0e':
             os.write(self.master, b'\xfe\x79\x00\x79') # send Ok
         elif cmd == b'\xfe\x4b\x00\x4b':
-            sleep(10)
-            os.write(self.master, b'\xfe\x63\x1f'
+            os.write(self.master, b'\xfe\x63\x1e'
                                 + b'\x00\x09'
                                 + b'\x00\x00\x00\x00\x00\x00\x00\x00'
                                 + b'\xf0'
@@ -50,13 +49,14 @@ class FakeMasterStation(object):
                                 + b'\x5a\x9d\x3d\x0f'
                                 + b'\x20'
                                 + b'\x5a\x9d\x3d\x55'
-                                + b'\x64')
-            os.write(self.master, b'\xfe\x63\x0a'
                                 + b'\x21'
-                                + b'\x5a\x9d\x3d\xc3'
+                                + b'\x5a\x9d'
+                                + b'\x7b')
+            os.write(self.master, b'\xfe\x63\x07'
+                                + b'\x3d\xc3'
                                 + b'\xf5'
                                 + b'\x5a\x9d\x3e\x5b'
-                                + b'\x0a')
+                                + b'\xef')
 
 
 if __name__ == "__main__":
