@@ -290,7 +290,7 @@ class Sportiduino(object):
                 raise SportiduinoTimeout('No response')
             elif byte != Sportiduino.START_BYTE:
                 self._serial.reset_input_buffer()
-                raise SportiduinoException('Invalid start byte 0x%s' % hex(byte2int(byte)))
+                raise SportiduinoException('Invalid start byte %s' % hex(byte2int(byte)))
 
             code = self._serial.read()
             length_byte = self._serial.read()
