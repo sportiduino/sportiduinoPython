@@ -22,6 +22,7 @@ class FakeMasterStation(object):
         self.master = master
         self.slave = slave
         self.port = s_name
+        self.count = 0
 
     def read(self):
         cmd = os.read(self.master,32)
@@ -42,23 +43,25 @@ class FakeMasterStation(object):
         elif cmd[:3] == b'\xfe\x44\x0e':
             os.write(self.master, b'\xfe\x79\x00\x79') # send Ok
         elif cmd == b'\xfe\x4b\x00\x4b':
-            os.write(self.master, b'\xfe\x63\x1e'
-                                + b'\x00\x09'
-                                + b'\x00\x00\x00\x00\x00\x00\x00\x00'
-                                + b'\xf0'
-                                + b'\x5a\x9d\x3c\xab'
-                                + b'\x1f'
-                                + b'\x5a\x9d\x3d\x0f'
-                                + b'\x20'
-                                + b'\x5a\x9d\x3d\x55'
-                                + b'\x21'
-                                + b'\x5a\x9d'
-                                + b'\x7b')
-            os.write(self.master, b'\xfe\x63\x07'
-                                + b'\x3d\xc3'
-                                + b'\xf5'
-                                + b'\x5a\x9d\x3e\x5b'
-                                + b'\xef')
+            self.count += 1
+            if self.count%4 == 0:
+                os.write(self.master, b'\xfe\x63\x1e'
+                                    + b'\x00\x09'
+                                    + b'\x00\x00\x00\x00\x00\x00\x00\x00'
+                                    + b'\xf0'
+                                    + b'\x5a\x9d\x3c\xab'
+                                    + b'\x1f'
+                                    + b'\x5a\x9d\x3d\x0f'
+                                    + b'\x20'
+                                    + b'\x5a\x9d\x3d\x55'
+                                    + b'\x21'
+                                    + b'\x5a\x9d'
+                                    + b'\x7b')
+                os.write(self.master, b'\xfe\x63\x07'
+                                    + b'\x3d\xc3'
+                                    + b'\xf5'
+                                    + b'\x5a\x9d\x3e\x5b'
+                                    + b'\xef')
 
 
 if __name__ == "__main__":

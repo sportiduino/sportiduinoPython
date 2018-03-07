@@ -139,12 +139,24 @@ class Sportiduino(object):
         return None
 
 
-    def read_card(self):
-        code, data = self._send_command(Sportiduino.CMD_READ_CARD)
+    def read_card(self, timeout=None):
+        code, data = self._send_command(Sportiduino.CMD_READ_CARD, timeout=timeout)
         if code == Sportiduino.RESP_CARD_DATA:
             return self._parse_card_data(data)
         else:
             raise SportiduinoException("Read card failed.")
+
+
+    def poll_card(self):
+        try:
+            self.card_data = self.read_card(timeout=0)
+            return True
+        except SportiduinoTimeout:
+            pass
+        except SportiduinoException as msg:
+            if self._debug:
+                print("Warning: %s" % msg)
+        return False
 
 
     def read_card_raw(self):
@@ -251,7 +263,7 @@ class Sportiduino(object):
             print("Master station %s on port '%s' connected" % (version, port))
 
 
-    def _send_command(self, code, parameters=None, wait_response=True):
+    def _send_command(self, code, parameters=None, wait_response=True, timeout=None):
         if parameters is None:
             parameters = b''
         data_len = len(parameters)
@@ -271,7 +283,7 @@ class Sportiduino(object):
         self._serial.write(cmd)
 
         if wait_response:
-            resp_code, data = self._read_response()
+            resp_code, data = self._read_response(timeout)
             return Sportiduino._preprocess_response(resp_code, data, self._debug)
 
         return None
