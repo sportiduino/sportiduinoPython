@@ -233,6 +233,9 @@ class Sportiduino(object):
     def _connect_master_station(self, port):
         try:
             self._serial = Serial(port, baudrate=9600, timeout=5)
+            # Master station reset on serial open.
+            # Wait little time for it startup
+            time.sleep(2)
         except (SerialException, OSError):
             raise SportiduinoException("Could not open port '%s'" % port)
 

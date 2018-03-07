@@ -14,11 +14,11 @@ else:
     sportiduino = Sportiduino(debug=True)
 
 
-print('beep_ok')
-sportiduino.beep_ok()
-
-print('beep_error')
-sportiduino.beep_error()
+#print('beep_ok')
+#sportiduino.beep_ok()
+#
+#print('beep_error')
+#sportiduino.beep_error()
 
 print('Read card loop')
 while True:
