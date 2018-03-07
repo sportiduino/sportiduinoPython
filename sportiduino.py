@@ -170,7 +170,7 @@ class Sportiduino(object):
         if page7 is None:
             page7 = b'\x00\x00\x00\x00'
 
-        params = bytearray()
+        params = b''
         params += Sportiduino._to_str(card_number, 2)
         t = int(time.time())
         params += Sportiduino._to_str(t, 4)
@@ -350,7 +350,7 @@ class Sportiduino(object):
             return i.to_bytes(len, 'big')
         if i >> len*8 != 0:
             raise OverflowError('%i too big to convert to %i bytes' % (i, len))
-        string = ''
+        string = b''
         for offset in range(len-1, -1, -1):
             string += int2byte((i >> offset*8) & 0xff)
         return string

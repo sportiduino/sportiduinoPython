@@ -20,6 +20,9 @@ else:
 #print('beep_error')
 #sportiduino.beep_error()
 
+print('read_card_raw')
+print(sportiduino.read_card_raw())
+
 print('Read card loop')
 while True:
     # Read card or wait
