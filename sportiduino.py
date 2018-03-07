@@ -282,14 +282,17 @@ class Sportiduino(object):
             if timeout is not None:
                 old_timeout = self._serial.timeout
                 self._serial.timeout = timeout
-            byte = self._serial.read()
+
+            # Skip any bytes before START_BYTE
+            while True:
+                byte = self._serial.read()
+                if byte == b'':
+                    raise SportiduinoTimeout('No response')
+                elif byte == Sportiduino.START_BYTE:
+                    break
+
             if timeout is not None:
                 self._serial.timeout = old_timeout 
-            if byte == b'':
-                raise SportiduinoTimeout('No response')
-            elif byte != Sportiduino.START_BYTE:
-                self._serial.reset_input_buffer()
-                raise SportiduinoException('Invalid start byte %s' % hex(byte2int(byte)))
 
             code = self._serial.read()
             length_byte = self._serial.read()
