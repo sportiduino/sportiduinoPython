@@ -116,11 +116,11 @@ class Sportiduino(object):
         raise SportiduinoException('No Sportiduino master station found. Possible reasons: %s' % errors)
 
     def beep_ok(self):
-        self._send_command(Sportiduino.CMD_BEEP_OK)
+        self._send_command(Sportiduino.CMD_BEEP_OK, wait_response=False)
 
 
     def beep_error(self):
-        self._send_command(Sportiduino.CMD_BEEP_ERROR)
+        self._send_command(Sportiduino.CMD_BEEP_ERROR, wait_response=False)
 
 
     def disconnect(self):
@@ -139,24 +139,24 @@ class Sportiduino(object):
         return None
 
 
-    def read_card(self, blocking=True):
-        code, data = self._send_command(Sportiduino.CMD_READ_CARD, blocking=blocking)
+    def read_card(self):
+        code, data = self._send_command(Sportiduino.CMD_READ_CARD)
         if code == Sportiduino.RESP_CARD_DATA:
             return self._parse_card_data(data)
         else:
             raise SportiduinoException("Read card failed.")
 
 
-    def read_card_raw(self, blocking=True):
-        code, data = self._send_command(Sportiduino.CMD_READ_RAW, blocking=blocking)
+    def read_card_raw(self):
+        code, data = self._send_command(Sportiduino.CMD_READ_RAW)
         if code == Sportiduino.RESP_CARD_RAW:
             return self._parse_card_raw_data(data)
         else:
             raise SportiduinoException("Read raw data failed.")
 
 
-    def read_log(self, blocking=True):
-        code, data = self._send_command(Sportiduino.CMD_READ_LOGREADER, blocking=blocking)
+    def read_log(self):
+        code, data = self._send_command(Sportiduino.CMD_READ_LOGREADER)
         if code == Sportiduino.RESP_LOG:
             return self._parse_log(data)
         else:
@@ -176,20 +176,20 @@ class Sportiduino(object):
         params += Sportiduino._to_str(t, 4)
         params += page6[:5]
         params += page7[:5]
-        self._send_command(Sportiduino.CMD_INIT_CARD, params)
+        self._send_command(Sportiduino.CMD_INIT_CARD, params, wait_response=False)
 
 
     def init_logreader(self):
-        self._send_command(Sportiduino.CMD_INIT_LOGREADER)
+        self._send_command(Sportiduino.CMD_INIT_LOGREADER, wait_response=False)
 
 
     def init_sleepcard(self):
-        self._send_command(Sportiduino.CMD_INIT_SLEEPCARD)
+        self._send_command(Sportiduino.CMD_INIT_SLEEPCARD, wait_response=False)
 
 
     def write_cp_number(self, cp_number):
         params = int2byte(cp_number)
-        self._send_command(Sportiduino.CMD_WRITE_CP_NUM, params)
+        self._send_command(Sportiduino.CMD_WRITE_CP_NUM, params, wait_response=False)
 
 
     def write_time(self, time=datetime.today()):
@@ -200,7 +200,7 @@ class Sportiduino(object):
         params.append(time.hour)
         params.append(time.minute)
         params.append(time.second)
-        self._send_command(Sportiduino.CMD_WRITE_TIME, params)
+        self._send_command(Sportiduino.CMD_WRITE_TIME, params, wait_response=False)
 
 
     def write_passwd(self, old_passwd, new_passwd, settings):
@@ -208,14 +208,14 @@ class Sportiduino(object):
         params += Sportiduino._to_str(new_passwd, 3)
         params += Sportiduino._to_str(old_passwd, 3)
         params += Sportiduino._to_str(settings, 1)
-        self._send_command(Sportiduino.CMD_WRITE_PASSWD, params)
+        self._send_command(Sportiduino.CMD_WRITE_PASSWD, params, wait_response=False)
 
 
     def write_pages6_7(self, page6, page7):
         params = bytearray()
         params += page6[:5]
         params += page7[:5]
-        self._send_command(Sportiduino.CMD_WRITE_PAGES6_7, params)
+        self._send_command(Sportiduino.CMD_WRITE_PAGES6_7, params, wait_response=False)
 
 
     def enable_continuous_read(self):
@@ -227,7 +227,7 @@ class Sportiduino(object):
 
 
     def _set_mode(self, mode):
-        self._send_command(Sportiduino.CMD_SET_READ_MODE, mode)
+        self._send_command(Sportiduino.CMD_SET_READ_MODE, mode, wait_response=False)
 
 
     def _connect_master_station(self, port):
@@ -251,7 +251,7 @@ class Sportiduino(object):
             print("Master station %s on port '%s' connected" % (version, port))
 
 
-    def _send_command(self, code, parameters=None, blocking=False):
+    def _send_command(self, code, parameters=None, wait_response=True):
         if parameters is None:
             parameters = b''
         data_len = len(parameters)
@@ -270,15 +270,11 @@ class Sportiduino(object):
             #                                                 ))
         self._serial.write(cmd)
 
-        while True:
-            try:
-                resp_code, data = self._read_response()
-                break
-            except SportiduinoTimeout as msg:
-                if not blocking:
-                    raise SportiduinoTimeout(msg)
+        if wait_response:
+            resp_code, data = self._read_response()
+            return Sportiduino._preprocess_response(resp_code, data, self._debug)
 
-        return Sportiduino._preprocess_response(resp_code, data, self._debug)
+        return None
 
 
     def _read_response(self, timeout=None, wait_fragment=None):
