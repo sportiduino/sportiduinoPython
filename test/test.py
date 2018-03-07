@@ -13,11 +13,6 @@ if len(sys.argv) > 1:
 else:
     sportiduino = Sportiduino(debug=True)
 
-#print('read_card')
-#data = sportiduino.read_card()
-#print("Punches:", data)
-#print('beep_ok')
-#sportiduino.beep_ok()
 
 print('Read card loop')
 while True:
