@@ -36,17 +36,19 @@ if PY3:
             return x
 
 class Sportiduino(object):
+    """Protocol functions and constants to interact with Sportiduino master station."""
 
     # Constants
     START_BYTE = b'\xfe'
 
-    OFFSET = 0x1E
+    OFFSET         = 0x1E
 
-    MAX_DATA_LEN = 28
+    MAX_DATA_LEN   = 28
 
-    START_STATION = 240
+    START_STATION  = 240
     FINISH_STATION = 245
 
+    # Protocol commands
     CMD_WRITE_TIME      = b'\x41'
     CMD_WRITE_CP_NUM    = b'\x42'
     CMD_WRITE_PASSWD    = b'\x43'
@@ -62,6 +64,7 @@ class Sportiduino(object):
     CMD_BEEP_ERROR      = b'\x58'
     CMD_BEEP_OK         = b'\x59'
 
+    # Protocol responses
     RESP_LOG            = b'\x61'
     RESP_CARD_DATA      = b'\x63'
     RESP_CARD_RAW       = b'\x65'
@@ -70,20 +73,34 @@ class Sportiduino(object):
     RESP_ERROR          = b'\x78'
     RESP_OK             = b'\x79'
 
+    # Protocol error codes
     ERR_COM             = b'\x01'
     ERR_WRITE_CARD      = b'\x02'
     ERR_READ_CARD       = b'\x03'
+    ERR_READ_EEPROM     = b'\x04'
 
     class Version(object):
+        """Sportiduino firmware version."""
         def __init__(self, value):
+            """Initializes version by byte from master station.
+            @param value: Byte from master station.
+            """
             self.value = value
             self.major = value // 100
             self.minor = value % 100
 
         def __str__(self):
+            """Override __str__ method.
+            @return: User friendly version string.
+            """
             return 'v%d.%d.x' % (self.major, self.minor)
 
     def __init__(self, port=None, debug=False):
+        """Initializes communication with master station at port.
+        @param port: Serial device for the connection. If port is None it
+                     scans all available ports and connects to the first
+                     reader found.
+        """
         self._serial = None
         self._debug = debug
 
@@ -116,23 +133,30 @@ class Sportiduino(object):
         raise SportiduinoException('No Sportiduino master station found. Possible reasons: %s' % errors)
 
     def beep_ok(self):
+        """One long beep and blink master station."""
         self._send_command(Sportiduino.CMD_BEEP_OK, wait_response=False)
 
 
     def beep_error(self):
+        """Three short beep and blink master station."""
         self._send_command(Sportiduino.CMD_BEEP_ERROR, wait_response=False)
 
 
     def disconnect(self):
+        """Close the serial port an disconnect from the station."""
         self._serial.close()
 
 
     def reconnect(self):
+        """Close the serial port and reopen again."""
         self.disconnect()
         self._connect_master_station(self._serial.port)
 
 
     def read_version(self):
+        """Read master station firmware version.
+        @return: Version object.
+        """
         code, data = self._send_command(Sportiduino.CMD_READ_VERS)
         if code == Sportiduino.RESP_VERS:
             return Sportiduino.Version(byte2int(data))
@@ -140,6 +164,10 @@ class Sportiduino(object):
 
 
     def read_card(self, timeout=None):
+        """Reads out the card currently inserted into the station.
+        @param timeout: Timeout for reading response (see pyserial doc).
+        @return:        Card data in dictionary.
+        """
         code, data = self._send_command(Sportiduino.CMD_READ_CARD, timeout=timeout)
         if code == Sportiduino.RESP_CARD_DATA:
             return self._parse_card_data(data)
@@ -148,6 +176,9 @@ class Sportiduino(object):
 
 
     def poll_card(self):
+        """Poll card inserted into the station.
+        If card readed update self.card_data and return True.
+        @return: Read card status."""
         try:
             self.card_data = self.read_card(timeout=0)
             return True
@@ -160,6 +191,9 @@ class Sportiduino(object):
 
 
     def read_card_raw(self):
+        """Reads out the RAW data from card currently inserted into the station.
+        @return: RAW card data in dictionary.
+        """
         code, data = self._send_command(Sportiduino.CMD_READ_RAW)
         if code == Sportiduino.RESP_CARD_RAW:
             return self._parse_card_raw_data(data)
@@ -168,6 +202,9 @@ class Sportiduino(object):
 
 
     def read_log(self):
+        """Read log from logreader card.
+        @return: Log data in dictionary.
+        """
         code, data = self._send_command(Sportiduino.CMD_READ_LOGREADER)
         if code == Sportiduino.RESP_LOG:
             return self._parse_log(data)
@@ -176,6 +213,11 @@ class Sportiduino(object):
 
 
     def init_card(self, card_number, page6=None, page7=None):
+        """Initialize card. Set card number, init time and additional pages.
+        @param card_number: Card number (eg participant bib).
+        @param page6:       Additional page.
+        @param page7:       Additional page.
+        """
         #TODO: check page6 and page7 length
         if page6 is None:
             page6 = b'\x00\x00\x00\x00'
@@ -192,19 +234,27 @@ class Sportiduino(object):
 
 
     def init_logreader(self):
+        """Initialize logreader card."""
         self._send_command(Sportiduino.CMD_INIT_LOGREADER, wait_response=False)
 
 
     def init_sleepcard(self):
+        """Initialize sleep card."""
         self._send_command(Sportiduino.CMD_INIT_SLEEPCARD, wait_response=False)
 
 
     def write_cp_number(self, cp_number):
+        """Write check point number to card.
+        @param cp_number: Check point number.
+        """
         params = int2byte(cp_number)
         self._send_command(Sportiduino.CMD_WRITE_CP_NUM, params, wait_response=False)
 
 
     def write_time(self, time=datetime.today()):
+        """Write time for base station to card.
+        @param time: Time for base station (default current time).
+        """
         params = bytearray()
         params.append(time.year - 2000)
         params.append(time.month)
@@ -215,15 +265,21 @@ class Sportiduino(object):
         self._send_command(Sportiduino.CMD_WRITE_TIME, params, wait_response=False)
 
 
-    def write_passwd(self, old_passwd, new_passwd, settings):
+    def write_passwd(self, old_passwd=0, new_passwd=0, flags=0):
+        """Write new password for base station to card.
+        @param old_passwd: Old password (default 0x000000).
+        @param new_passwd: New password (default 0x000000).
+        @param flags:      Flags byte (default 0x00).
+        """
         params = bytearray()
         params += Sportiduino._to_str(new_passwd, 3)
         params += Sportiduino._to_str(old_passwd, 3)
-        params += Sportiduino._to_str(settings, 1)
+        params += Sportiduino._to_str(flags, 1)
         self._send_command(Sportiduino.CMD_WRITE_PASSWD, params, wait_response=False)
 
 
     def write_pages6_7(self, page6, page7):
+        """Write additional pages."""
         params = bytearray()
         params += page6[:5]
         params += page7[:5]
@@ -231,14 +287,17 @@ class Sportiduino(object):
 
 
     def enable_continuous_read(self):
+        """Enable continuous card read."""
         self._set_mode(b'\x01')
 
 
     def disable_continuous_read(self):
+        """Disable continuous card read."""
         self._set_mode(b'\x00')
 
 
     def _set_mode(self, mode):
+        """Set master station read mode."""
         self._send_command(Sportiduino.CMD_SET_READ_MODE, mode, wait_response=False)
 
 
@@ -357,6 +416,11 @@ class Sportiduino(object):
 
     @staticmethod
     def _to_str(i, len):
+        """
+        @param i:   Integer to convert into str
+        @param len: Length of the return value. If i does not fit OverflowError is raised.
+        @return:    string representation of i (MSB first)
+        """
         if PY3:
             return i.to_bytes(len, 'big')
         if i >> len*8 != 0:
@@ -376,6 +440,10 @@ class Sportiduino(object):
                 raise SportiduinoException("Card write error")
             elif data == Sportiduino.ERR_READ_CARD:
                 raise SportiduinoException("Card read error")
+            elif data == Sportiduino.ERR_READ_EEPROM:
+                raise SportiduinoException("EEPROM read error")
+            else:
+                raise SportiduinoException("Error with code %s" % hex(byte2int(code)))
         elif code == Sportiduino.RESP_OK and debug:
             print("Ok received")
         return code, data
@@ -383,6 +451,9 @@ class Sportiduino(object):
 
     @staticmethod
     def _checsum(s):
+        """Compute checksum of value.
+        @param s: byte string
+        """
         sum = 0
         for c in s:
             sum += byte2int(c)
