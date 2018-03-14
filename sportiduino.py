@@ -255,13 +255,13 @@ class Sportiduino(object):
         """Write time for base station to card.
         @param time: Time for base station (default current time).
         """
-        params = bytearray()
-        params.append(time.year - 2000)
-        params.append(time.month)
-        params.append(time.day)
-        params.append(time.hour)
-        params.append(time.minute)
-        params.append(time.second)
+        params = b''
+        params += int2byte(time.year - 2000)
+        params += int2byte(time.month)
+        params += int2byte(time.day)
+        params += int2byte(time.hour)
+        params += int2byte(time.minute)
+        params += int2byte(time.second)
         self._send_command(Sportiduino.CMD_WRITE_TIME, params, wait_response=False)
 
 
@@ -271,7 +271,7 @@ class Sportiduino(object):
         @param new_passwd: New password (default 0x000000).
         @param flags:      Flags byte (default 0x00).
         """
-        params = bytearray()
+        params = b''
         params += Sportiduino._to_str(new_passwd, 3)
         params += Sportiduino._to_str(old_passwd, 3)
         params += Sportiduino._to_str(flags, 1)
@@ -280,7 +280,7 @@ class Sportiduino(object):
 
     def write_pages6_7(self, page6, page7):
         """Write additional pages."""
-        params = bytearray()
+        params = b''
         params += page6[:5]
         params += page7[:5]
         self._send_command(Sportiduino.CMD_WRITE_PAGES6_7, params, wait_response=False)
@@ -492,7 +492,7 @@ class Sportiduino(object):
         ret = {}
         for i in range(0, len(data), 5):
             page_num = byte2int(data[i])
-            ret[page_num] = data[i + 1:i + 4]
+            ret[page_num] = data[i + 1:i + 5]
 
         return ret
 
@@ -504,7 +504,7 @@ class Sportiduino(object):
         ret['cp'] = cp
         ret['cards'] = []
         for i in range(1, len(data), 2):
-            ret['cards'].append(Sportiduino._to_int(data[i:i + 1]))
+            ret['cards'].append(Sportiduino._to_int(data[i:i + 2]))
 
         return ret
 
