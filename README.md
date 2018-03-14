@@ -16,7 +16,7 @@ To use the Sportiduino master station for card readout:
 
     # Wait for a card to be inserted into the master station
     while not sportiduino.poll_card():
-        sleep(1)
+        sleep(0.5)
 
     # Now card data is set
     data = sportiduino.card_data

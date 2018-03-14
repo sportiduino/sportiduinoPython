@@ -180,7 +180,7 @@ class Sportiduino(object):
         If card readed update self.card_data and return True.
         @return: Read card status."""
         try:
-            self.card_data = self.read_card(timeout=0)
+            self.card_data = self.read_card(timeout=0.5)
             return True
         except SportiduinoTimeout:
             pass
@@ -335,10 +335,8 @@ class Sportiduino(object):
 
         if self._debug:
             print("=> %s" % ' '.join(hex(byte2int(c)) for c in cmd))
-            #print("=> command '%s', parameters %s, cs %s" % (hexlify(code).decode('ascii'),
-            #                                                 ' '.join([hexlify(int2byte(c)).decode('ascii') for c in parameters]),
-            #                                                 hexlify(cs).decode('ascii'),
-            #                                                 ))
+
+        self._serial.flushInput()
         self._serial.write(cmd)
 
         if wait_response:

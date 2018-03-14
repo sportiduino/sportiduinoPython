@@ -17,9 +17,10 @@ else:
 print('Read card loop')
 while True:
     while not sportiduino.poll_card():
-        sleep(1)
+        sleep(0.5)
 
     data = sportiduino.card_data
     print("Punches:", data)
     sportiduino.beep_ok()
+    sleep(1)
 
