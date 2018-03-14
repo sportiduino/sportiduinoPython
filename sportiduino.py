@@ -49,23 +49,23 @@ class Sportiduino(object):
     FINISH_STATION = 245
 
     # Protocol commands
-    CMD_WRITE_TIME      = b'\x41'
-    CMD_WRITE_CP_NUM    = b'\x42'
-    CMD_WRITE_PASSWD    = b'\x43'
-    CMD_INIT_CARD       = b'\x44'
-    CMD_WRITE_PAGES6_7  = b'\x45'
-    CMD_READ_VERS       = b'\x46'
-    CMD_INIT_LOGREADER  = b'\x47'
-    CMD_READ_LOGREADER  = b'\x48'
-    CMD_SET_READ_MODE   = b'\x49'
-    CMD_READ_CARD       = b'\x4b'
-    CMD_READ_RAW        = b'\x4c'
-    CMD_INIT_SLEEPCARD  = b'\x4e'
-    CMD_BEEP_ERROR      = b'\x58'
-    CMD_BEEP_OK         = b'\x59'
+    CMD_INIT_TIMECARD     = b'\x41'
+    CMD_INIT_CP_NUM_CARD  = b'\x42'
+    CMD_INIT_PASSWDCARD   = b'\x43'
+    CMD_INIT_CARD         = b'\x44'
+    CMD_WRITE_PAGES6_7    = b'\x45'
+    CMD_READ_VERS         = b'\x46'
+    CMD_INIT_BACKUPREADER = b'\x47'
+    CMD_READ_BACKUPREADER = b'\x48'
+    CMD_SET_READ_MODE     = b'\x49'
+    CMD_READ_CARD         = b'\x4b'
+    CMD_READ_RAW          = b'\x4c'
+    CMD_INIT_SLEEPCARD    = b'\x4e'
+    CMD_BEEP_ERROR        = b'\x58'
+    CMD_BEEP_OK           = b'\x59'
 
     # Protocol responses
-    RESP_LOG            = b'\x61'
+    RESP_BACKUP         = b'\x61'
     RESP_CARD_DATA      = b'\x63'
     RESP_CARD_RAW       = b'\x65'
     RESP_VERS           = b'\x66'
@@ -201,15 +201,15 @@ class Sportiduino(object):
             raise SportiduinoException("Read raw data failed.")
 
 
-    def read_log(self):
-        """Read log from logreader card.
-        @return: Log data in dictionary.
+    def read_backup(self):
+        """Read backup from backupreader card.
+        @return: Backup data in dictionary.
         """
-        code, data = self._send_command(Sportiduino.CMD_READ_LOGREADER)
-        if code == Sportiduino.RESP_LOG:
-            return self._parse_log(data)
+        code, data = self._send_command(Sportiduino.CMD_READ_BACKUPREADER)
+        if code == Sportiduino.RESP_BACKUP:
+            return self._parse_backup(data)
         else:
-            raise SportiduinoException("Read log failed.")
+            raise SportiduinoException("Read backup failed.")
 
 
     def init_card(self, card_number, page6=None, page7=None):
@@ -233,9 +233,9 @@ class Sportiduino(object):
         self._send_command(Sportiduino.CMD_INIT_CARD, params, wait_response=False)
 
 
-    def init_logreader(self):
-        """Initialize logreader card."""
-        self._send_command(Sportiduino.CMD_INIT_LOGREADER, wait_response=False)
+    def init_backupreader(self):
+        """Initialize backupreader card."""
+        self._send_command(Sportiduino.CMD_INIT_BACKUPREADER, wait_response=False)
 
 
     def init_sleepcard(self):
@@ -243,16 +243,16 @@ class Sportiduino(object):
         self._send_command(Sportiduino.CMD_INIT_SLEEPCARD, wait_response=False)
 
 
-    def write_cp_number(self, cp_number):
-        """Write check point number to card.
+    def init_cp_number_card(self, cp_number):
+        """Initialize card for writing check point number to base station.
         @param cp_number: Check point number.
         """
         params = int2byte(cp_number)
         self._send_command(Sportiduino.CMD_WRITE_CP_NUM, params, wait_response=False)
 
 
-    def write_time(self, time=datetime.today()):
-        """Write time for base station to card.
+    def init_time_card(self, time=datetime.today()):
+        """Initialize card for writing time to base station.
         @param time: Time for base station (default current time).
         """
         params = b''
@@ -262,11 +262,11 @@ class Sportiduino(object):
         params += int2byte(time.hour)
         params += int2byte(time.minute)
         params += int2byte(time.second)
-        self._send_command(Sportiduino.CMD_WRITE_TIME, params, wait_response=False)
+        self._send_command(Sportiduino.CMD_INIT_TIMECARD, params, wait_response=False)
 
 
-    def write_passwd(self, old_passwd=0, new_passwd=0, flags=0):
-        """Write new password for base station to card.
+    def init_passwd_card(self, old_passwd=0, new_passwd=0, flags=0):
+        """Initialize card for writing new password to base station.
         @param old_passwd: Old password (default 0x000000).
         @param new_passwd: New password (default 0x000000).
         @param flags:      Flags byte (default 0x00).
@@ -275,7 +275,7 @@ class Sportiduino(object):
         params += Sportiduino._to_str(new_passwd, 3)
         params += Sportiduino._to_str(old_passwd, 3)
         params += Sportiduino._to_str(flags, 1)
-        self._send_command(Sportiduino.CMD_WRITE_PASSWD, params, wait_response=False)
+        self._send_command(Sportiduino.CMD_INIT_PASSWDCARD, params, wait_response=False)
 
 
     def write_pages6_7(self, page6, page7):
@@ -498,7 +498,7 @@ class Sportiduino(object):
 
 
     @staticmethod
-    def _parse_log(data):
+    def _parse_backup(data):
         ret = {}
         cp = byte2int(data[0])
         ret['cp'] = cp
