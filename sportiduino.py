@@ -255,7 +255,7 @@ class Sportiduino(object):
         @param cp_number: Check point number.
         """
         params = int2byte(cp_number)
-        self._send_command(Sportiduino.CMD_WRITE_CP_NUM, params, wait_response=False)
+        self._send_command(Sportiduino.CMD_INIT_CP_NUM_CARD, params, wait_response=False)
 
 
     def init_time_card(self, time=datetime.today()):
@@ -503,12 +503,12 @@ class Sportiduino(object):
     @staticmethod
     def _parse_backup(data):
         ret = {}
-        cp = byte2int(data[0])
+        cp = Sportiduino._to_int(data[0:2])
         ret['cp'] = cp
         ret['cards'] = []
-        for i in range(1, len(data), 2):
+        for i in range(2, len(data), 2):
             ret['cards'].append(Sportiduino._to_int(data[i:i + 2]))
-
+        
         return ret
 
 
